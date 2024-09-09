@@ -119,7 +119,7 @@ def send_files(sock, filename):
 def server():
     # define connection parameters
     port = 8080
-    target = "192.168.0.138"
+    target = "127.0.0.1"
 
     # set socket option
     try:
