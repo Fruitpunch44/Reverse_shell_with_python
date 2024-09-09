@@ -92,6 +92,8 @@ def receive_files(sock, filename):
 def send_files(sock, filename):
     # get size of target file
     file_size = os.path.getsize(filename)
+    # returned value is an int
+    
     sock.sendall(f'{file_size}'.encode())
     # set progress bar
     progress = tqdm(total=file_size, desc=f'sending {filename}',
