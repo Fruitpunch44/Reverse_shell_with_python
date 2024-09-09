@@ -42,7 +42,7 @@ def receive_files(sock, filename):
 
 def main():
     # set socket options
-    Host = "192.168.0.138"
+    Host = "127.0.0.1"
     port = 8080
 
     cli = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
