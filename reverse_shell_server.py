@@ -17,7 +17,9 @@ def handle_client(client_sock):
 
     while True:
         # my terminal kinda
-        command = input("$eyi: ")
+        # display the cwd of the client on terminal
+        cwd=client_sock.recv(1046).decode()
+        command = input(f"{cwd}: ")
         if command == "exit":
             client_sock.send(b'closed')
             client_sock.close()
