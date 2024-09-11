@@ -11,9 +11,12 @@ def upload_files(client_sock, filename):
     try:
         with open(filename, 'rb') as file:
             while True:
-                data = file.read()
+                data = file.read(4096)
                 if not data:
-                    client_sock.sendall(data)
+                    break
+                # fr the issue of not sending was looking mw in the eyes for almost 4hrs
+                # only to see that the sendall was in the if not condition
+                client_sock.sendall(data)
                 # show upload speed
                 client_sock.sendall(b'OK \n')
                 return f' download {filename} successful'
